@@ -419,34 +419,26 @@ async function supabaseSignIn(email, password) {
 
 // ---------- API call to generate the next episode ----------
 async function generateNextEpisode(series) {
-  const priorSummary = series.episodes
-    .map((e, i) => `Episode ${i + 1} - ${e.title}:\n${e.body}`)
-    .join("\n\n---\n\n");
-
-  const systemPrompt = `You write addictive, melodramatic short-drama episodes (the style of viral vertical-video drama apps like ReelShort or DramaBox). Punchy short paragraphs, sharp dialogue, a twist or emotional gut-punch, and a cliffhanger ending. 250-350 words. Genre: ${series.genre}. Series: "${series.title}". Logline: ${series.logline}
-Return ONLY valid JSON, no markdown fences, no preamble, in this exact shape:
-{"title": "Episode title (3-6 words, punchy)", "body": "The episode text, using \\n\\n between paragraphs."}`;
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-episode`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: `Here is the story so far:\n\n${priorSummary}\n\nWrite the next episode. End on a cliffhanger.`,
-        },
-      ],
+      title: series.title,
+      genre: series.genre,
+      logline: series.logline,
+      episodes: series.episodes,
     }),
   });
 
   const data = await response.json();
-  const raw = data.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-  const cleaned = raw.replace(/```json|```/g, "").trim();
-  return JSON.parse(cleaned);
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to generate episode");
+  }
+  return data;
 }
 
 // ---------- Main App ----------
