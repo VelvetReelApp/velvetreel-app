@@ -39,7 +39,11 @@ workflows:
     publishing:
       email:
         recipients:
-          - barbielatoya@myyahoo.com
+          - barbielatoya@myyahoo.com  
+      app_store_connect:
+      auth: integration
+      submit_to_testflight: true
+
         notify:
           success: true
           failure: true
